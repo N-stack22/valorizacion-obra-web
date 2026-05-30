@@ -1,0 +1,58 @@
+import type { ProjectModule } from "@/types/modules";
+
+export const projectModules: ProjectModule[] = [
+  {
+    id: "linea-base",
+    title: "Parametrización contractual y línea base",
+    description: "Registro de proyecto, contrato, presupuesto base, partidas, precios unitarios y cronograma valorizado.",
+    path: "/app/proyectos",
+    status: "en_progreso",
+    tables: ["proyectos_obra", "contratos_obra", "partidas_presupuesto", "cronograma_valorizado_base"],
+    tests: ["Unitarias de códigos de partida", "Componentes de formularios", "E2E crear proyecto y contrato"],
+  },
+  {
+    id: "metrados",
+    title: "Gestión de metrados y evidencias",
+    description: "Planilla mensual, sustento dimensional, fotos, ensayos y validación contra saldo contractual.",
+    path: "/app/metrados",
+    status: "pendiente",
+    tables: ["periodos_valorizacion", "metrados_diarios_campo", "sustentos_metrado", "panel_fotografico"],
+    tests: ["Unitarias L×A×H×N", "Componentes de carga de evidencia", "E2E registrar metrado"],
+  },
+  {
+    id: "fiscalizacion",
+    title: "Fiscalización y valorizaciones",
+    description: "Revisión del supervisor, observaciones, recortes, aprobación y cierre de periodo.",
+    path: "/app/valorizaciones",
+    status: "pendiente",
+    tables: ["valorizaciones_mensuales", "detalles_valorizacion_partida", "observaciones_supervisor"],
+    tests: ["Unitarias de avance", "Componentes de observación", "E2E residente-supervisor"],
+  },
+  {
+    id: "reajustes",
+    title: "Reajustes financieros",
+    description: "Fórmula polinómica, índices INEI, coeficiente K, reajustes y amortizaciones.",
+    path: "/app/reajustes",
+    status: "pendiente",
+    tables: ["formulas_polinomicas", "monomios_detalle", "valores_mensuales_inei", "reajustes_mensuales"],
+    tests: ["Unitarias factor K", "Componentes fórmula", "E2E cálculo reajuste"],
+  },
+  {
+    id: "expediente-ia",
+    title: "Expediente mensual con IA",
+    description: "Generación de memoria, sustento técnico, conclusiones y recomendaciones con revisión humana.",
+    path: "/app/expediente",
+    status: "pendiente",
+    tables: ["documentos_exportados", "firmas_digitales_registro", "logs_sistema"],
+    tests: ["Unitarias de prompt", "Componentes editor", "E2E generar y exportar"],
+  },
+  {
+    id: "liquidacion",
+    title: "Consolidación y pre-liquidación",
+    description: "Historial de valorizaciones, adicionales, deductivos, ampliaciones, intereses y saldo final.",
+    path: "/app/liquidacion",
+    status: "pendiente",
+    tables: ["liquidaciones_obra", "resumen_amortizaciones", "intereses_legales", "historico_saldos_finales"],
+    tests: ["Unitarias saldo final", "Componentes resumen", "E2E exportar pre-liquidación"],
+  },
+];

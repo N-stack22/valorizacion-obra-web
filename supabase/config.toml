@@ -1,0 +1,4 @@
+project_id = "valorizacion-obra-web"
+
+[functions.verificar-dni]
+verify_jwt = false
