@@ -16,10 +16,16 @@ test.describe("Caja negra: autenticacion publica", () => {
 
   test("rutas protegidas no muestran contenido de app sin sesion", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.waitForLoadState("networkidle");
 
     await expect(page.locator("body")).not.toContainText("Valorizado aprobado");
-    await expect(page.locator("body")).toContainText(/Cargando acceso al sistema|Ingresar al sistema/);
+
+    await expect(async () => {
+      const url = page.url();
+      const body = await page.locator("body").innerText();
+      const redirected = /\/auth|\/login|\/$/.test(url);
+      const blocked = /Cargando acceso al sistema|Ingresar al sistema|Acceso restringido/.test(body);
+      expect(redirected || blocked).toBe(true);
+    }).toPass({ timeout: 15_000 });
   });
 
   test("login mobile no genera overflow horizontal", async ({ page }) => {

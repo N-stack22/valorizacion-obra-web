@@ -15,7 +15,7 @@
     "test:roles": "vitest run src/lib/auth-policy.test.ts src/lib/workflow.test.ts",
     "test:whitebox": "vitest run src/lib/white-box-domain-logic.test.ts src/lib/security-access.test.ts src/lib/auth-policy.test.ts",
     "test:techniques": "vitest run src/lib/black-box-techniques.test.ts src/lib/white-box-domain-logic.test.ts",
-    "test:blackbox": "playwright test e2e/security-auth.spec.ts e2e/smoke.spec.ts",
+    "test:blackbox": "playwright test e2e/security-auth.spec.ts e2e/smoke.spec.ts e2e/public-access.spec.ts",
     "test:volume": "vitest run src/lib/volume-stress.performance.test.ts",
     "test:stress": "vitest run src/lib/volume-stress.performance.test.ts",
     "test:performance": "vitest run src/lib/volume-stress.performance.test.ts",

@@ -5,11 +5,14 @@ import {
   computeLinePartial,
   getMetradoExcess,
   isMetradoWithinContract,
+  totals,
   type MetradoLine,
 } from "./expediente";
 import { canCreateProjectWithRoles } from "./auth-policy";
-import { calcReajuste, type Monomio } from "./reajuste";
+import { calcReajuste, isFormulaBalanced, type Monomio } from "./reajuste";
 import { canUserPerform, getAvailableTransitions, getWorkflowTransitions } from "./workflow";
+import { validatePeriodOpening } from "./period-policy";
+import { computeValuationBreakdown } from "./valuation-breakdown";
 import type { BudgetItemRow } from "./domain";
 import type { DraftContext } from "./ai/types";
 import {
@@ -178,5 +181,153 @@ describe("caja blanca - logica interna solicitada", () => {
     expect(SYSTEM_PROMPT).toContain("NO INVENTES");
     expect(SYSTEM_PROMPT).toContain("NO calcules");
     expect(SYSTEM_PROMPT).toContain("NO apruebes");
+  });
+
+  it("formula custom invalida cae al calculo geometrico interno", () => {
+    expect(computeLinePartial({ num_elements: 2, length: 3, width: 4, height: 5, formula: "alert(1)" })).toBe(120);
+    expect(computeLinePartial({ num_elements: 1, length: 2, width: 3, formula: "L*A" })).toBe(6);
+    expect(computeLinePartial({ num_elements: 1, length: 2, formula: "L" })).toBe(2);
+  });
+
+  it("buildValuationTable calcula saldo y porcentajes acumulados por partida", () => {
+    const secondItem = budgetItem({
+      id: "item-2",
+      item_code: "01.02",
+      base_quantity: 50,
+      unit_price: 20,
+    });
+    const rows = buildValuationTable({
+      items: [budgetItem({ base_quantity: 100, unit_price: 10 }), secondItem],
+      previousLines: [metradoLine({ item_id: "item-1", partial: 30 })],
+      currentLines: [
+        metradoLine({ item_id: "item-1", partial: 20 }),
+        metradoLine({ id: "line-2", item_id: "item-2", partial: 10 }),
+      ],
+    });
+
+    expect(rows[0].qtyAccum).toBe(50);
+    expect(rows[0].qtyBalance).toBe(50);
+    expect(rows[0].pctAccum).toBe(50);
+    expect(rows[1].amountCurrent).toBe(200);
+    expect(rows[1].qtyBalance).toBe(40);
+  });
+
+  it("calcReajuste marca monomios faltantes sin sumarlos al factor K", () => {
+    const result = calcReajuste(
+      [
+        { symbol: "a", coefficient: 0.5, index_code: "39", base_index_value: 100 },
+        { symbol: "b", coefficient: 0.5, index_code: "99", base_index_value: 200 },
+      ],
+      [{ code: "39", value: 120 }],
+      1_000,
+    );
+
+    expect(result.detail.find((row) => row.symbol === "b")?.missing).toBe(true);
+    expect(result.k).toBeCloseTo(0.6, 6);
+    expect(result.reajusteAmount).toBeCloseTo(-400, 2);
+  });
+
+  it("computeValuationBreakdown aplica ramas distintas de retencion", () => {
+    const perValuation = computeValuationBreakdown({
+      monthlyDirectCostAtReference: 10_000,
+      overheadPercentage: 0,
+      profitPercentage: 0,
+      relationFactor: 1,
+      reajusteK: 1,
+      retentionPercentage: 0.1,
+      retentionMode: "per_valuation",
+    });
+    const singleRetention = computeValuationBreakdown({
+      monthlyDirectCostAtReference: 10_000,
+      overheadPercentage: 0,
+      profitPercentage: 0,
+      relationFactor: 1,
+      reajusteK: 1,
+      retentionPercentage: 0.1,
+      retentionMode: "single",
+      contractAmount: 100_000,
+      retentionAlreadyRetained: 5_000,
+    });
+
+    expect(perValuation.retentionAmount).toBeCloseTo(1_000, 2);
+    expect(singleRetention.retentionAmount).toBeCloseTo(5_000, 2);
+    expect(singleRetention.netToPay).toBeLessThan(perValuation.netToPay);
+  });
+
+  it("validatePeriodOpening distingue faltantes de proyecto y presupuesto", () => {
+    const missingProject = validatePeriodOpening({
+      hasProject: false,
+      hasUser: true,
+      hasBudgetItems: true,
+      form: { number: 1, from: "2026-01-01", to: "2026-01-31" },
+      periods: [],
+    });
+    const missingBudget = validatePeriodOpening({
+      hasProject: true,
+      hasUser: true,
+      hasBudgetItems: false,
+      form: { number: 1, from: "2026-01-01", to: "2026-01-31" },
+      periods: [],
+      project: { start_date: "2026-01-01", planned_end_date: "2026-01-31" },
+    });
+
+    expect(missingProject.ok).toBe(false);
+    expect(missingBudget.ok).toBe(false);
+    if (!missingProject.ok) expect(missingProject.reason).toBe("missing_project_or_user");
+    if (!missingBudget.ok) expect(missingBudget.reason).toBe("missing_budget");
+  });
+
+  it("totals agrega solo hojas estructurales e ignora partidas padre", () => {
+    const parent = budgetItem({
+      id: "parent-1",
+      item_code: "01",
+      base_quantity: 0,
+      unit_price: 0,
+      partial_amount: 0,
+      hierarchy_level: 1,
+    });
+    const leaf = budgetItem({
+      id: "leaf-1",
+      item_code: "01.01",
+      base_quantity: 100,
+      unit_price: 10,
+      partial_amount: 1_000,
+      hierarchy_level: 2,
+      parent_item_code: "01",
+    });
+    const rows = buildValuationTable({
+      items: [parent, leaf],
+      previousLines: [],
+      currentLines: [metradoLine({ id: "line-leaf", item_id: "leaf-1", partial: 25 })],
+    });
+
+    const summary = totals(rows);
+    expect(summary.base).toBeCloseTo(1_000, 2);
+    expect(summary.current).toBeCloseTo(250, 2);
+    expect(summary.balance).toBeCloseTo(750, 2);
+  });
+
+  it("isFormulaBalanced valida suma unitaria de coeficientes polinomicos", () => {
+    const balanced: Monomio[] = [
+      { symbol: "a", coefficient: 0.4, index_code: "39", base_index_value: 100 },
+      { symbol: "b", coefficient: 0.6, index_code: "47", base_index_value: 200 },
+    ];
+
+    expect(isFormulaBalanced(balanced)).toBe(true);
+    expect(isFormulaBalanced([{ symbol: "a", coefficient: 0.95, index_code: "39", base_index_value: 100 }])).toBe(false);
+    expect(isFormulaBalanced([{ symbol: "a", coefficient: 1.002, index_code: "39", base_index_value: 100 }])).toBe(false);
+  });
+
+  it("getAvailableTransitions permite bypass interno para admin global", () => {
+    const transitions = getAvailableTransitions({
+      kind: "valuation",
+      status: "reviewed",
+      roles: [],
+      isGlobalAdmin: true,
+    });
+
+    expect(transitions.some((transition) => transition.action === "approved")).toBe(true);
+    expect(canUserPerform(transitions[0], [])).toBe(false);
+    expect(canUserPerform(transitions[0], [], true)).toBe(true);
   });
 });

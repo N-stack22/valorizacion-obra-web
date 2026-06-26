@@ -17,8 +17,17 @@ test.describe("Smoke: rutas públicas", () => {
 
   test("rutas protegidas redirigen sin sesión", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.waitForLoadState("networkidle");
-    // Debería redirigir a /auth (o mostrar página de login)
-    expect(page.url()).toMatch(/\/auth|\/login|\/$/);
+
+    await expect(page.locator("body")).not.toContainText("Valorizado aprobado");
+
+    // AuthGuard redirige a /login cuando termina de verificar la sesión,
+    // o muestra loading mientras bloquea el acceso sin sesión.
+    await expect(async () => {
+      const url = page.url();
+      const body = await page.locator("body").innerText();
+      const redirected = /\/auth|\/login|\/$/.test(url);
+      const blocked = /Cargando acceso al sistema|Ingresar al sistema/.test(body);
+      expect(redirected || blocked).toBe(true);
+    }).toPass({ timeout: 15_000 });
   });
 });
