@@ -1,0 +1,108 @@
+name: k6 Load Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Escenario k6 a ejecutar
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - load
+          - stress
+          - spike
+          - soak
+          - supabase-read
+      base_url:
+        description: URL del ambiente QA o produccion controlada. Si queda vacio, se levanta preview local.
+        type: string
+        required: false
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop, 'leonardo/**']
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    name: Pruebas de carga con k6
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SCENARIO: ${{ github.event.inputs.scenario || 'smoke' }}
+      BASE_URL_INPUT: ${{ github.event.inputs.base_url }}
+      SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.QA_SUPABASE_ANON_KEY }}
+      K6_AUTH_TOKEN: ${{ secrets.QA_K6_AUTH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar configuracion k6
+        run: npm run k6:validate
+
+      - name: Build de produccion para preview local
+        if: ${{ env.BASE_URL_INPUT == '' }}
+        run: npm run build
+
+      - name: Levantar preview local
+        if: ${{ env.BASE_URL_INPUT == '' }}
+        run: |
+          npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/vite-preview.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then
+              echo "Preview listo"
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/vite-preview.log || true
+          exit 1
+
+      - name: Ejecutar k6 mediante Docker
+        run: |
+          mkdir -p reports/k6
+          SUMMARY_PATH="reports/k6/${SCENARIO}-summary.json"
+          if [ -n "${BASE_URL_INPUT}" ]; then
+            export BASE_URL="${BASE_URL_INPUT}"
+            docker run --rm \
+              -e BASE_URL \
+              -e SUPABASE_URL \
+              -e SUPABASE_ANON_KEY \
+              -e K6_AUTH_TOKEN \
+              -v "$PWD:/workspace" \
+              -w /workspace \
+              grafana/k6:latest run --summary-export "$SUMMARY_PATH" "tests/k6/scenarios/${SCENARIO}.js"
+          else
+            export BASE_URL="http://127.0.0.1:4173"
+            docker run --rm --network host \
+              -e BASE_URL \
+              -e SUPABASE_URL \
+              -e SUPABASE_ANON_KEY \
+              -e K6_AUTH_TOKEN \
+              -v "$PWD:/workspace" \
+              -w /workspace \
+              grafana/k6:latest run --summary-export "$SUMMARY_PATH" "tests/k6/scenarios/${SCENARIO}.js"
+          fi
+
+      - name: Publicar resumen k6 como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary-${{ env.SCENARIO }}
+          path: reports/k6/*.json
+          if-no-files-found: warn
+          retention-days: 14

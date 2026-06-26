@@ -24,7 +24,22 @@
     "test:docs": "vitest run src/lib/documentation.compliance.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage.enabled true --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary",
+    "test:load": "npm run k6:load",
+    "k6:validate": "node scripts/verify-k6-sonar.mjs --k6",
+    "k6:smoke": "node scripts/run-k6.mjs smoke",
+    "k6:load": "node scripts/run-k6.mjs load",
+    "k6:stress": "node scripts/run-k6.mjs stress",
+    "k6:spike": "node scripts/run-k6.mjs spike",
+    "k6:soak": "node scripts/run-k6.mjs soak",
+    "k6:supabase": "node scripts/run-k6.mjs supabase-read",
+    "sonar:verify": "node scripts/verify-sonarsource.cjs",
+    "sonar:scan": "sonar-scanner",
+    "sonar:local": "bash scripts/sonar-scan.sh",
+    "quality:preflight": "node scripts/verify-k6-sonar.mjs && node scripts/verify-sonarsource.cjs",
+    "quality": "npm run quality:preflight && npm run lint && npm run typecheck && npm run test:coverage && npm run build"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -84,7 +99,7 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -95,6 +110,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/coverage-v8": "^4.1.8",
     "@vitest/ui": "^4.1.8",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
@@ -108,5 +124,8 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1",
     "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
   }
 }

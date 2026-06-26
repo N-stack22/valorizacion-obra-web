@@ -1,0 +1,89 @@
+name: SonarSource Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'leonardo/**'
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonarsource-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonarsource:
+    name: Vitest coverage, build y SonarSource
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout completo para SonarSource
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit
+
+      - name: Verificar configuracion local
+        run: npm run quality:preflight
+
+      - name: Ejecutar pruebas unitarias con cobertura LCOV
+        run: npm run test:coverage
+
+      - name: Verificar que exista coverage/lcov.info
+        run: |
+          test -f coverage/lcov.info
+          echo "LCOV generado correctamente: coverage/lcov.info"
+
+      - name: Build de produccion
+        run: npm run build
+
+      - name: Publicar cobertura como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: |
+            coverage/lcov.info
+            coverage/**/*.html
+            coverage/**/*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Validar secretos de SonarSource
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::Falta configurar el secret SONAR_TOKEN en GitHub: Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "Secret SONAR_TOKEN detectado."
+
+      - name: Analisis SonarSource / SonarQube Cloud
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # Para SonarQube Server autohospedado define SONAR_HOST_URL como secret o variable.
+          # Para SonarQube Cloud no es necesario.
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          GITHUB_TOKEN: ${{ github.token }}

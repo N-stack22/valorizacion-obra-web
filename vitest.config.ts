@@ -11,6 +11,22 @@ export default defineConfig({
     // and obtain reliable heap measurements in CI.
     pool: "forks",
     execArgv: ["--expose-gc"],
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "coverage",
+      reporter: ["text", "text-summary", "json", "html", "lcov"],
+      include: ["src/lib/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/routeTree.gen.ts",
+        "src/integrations/supabase/types.ts",
+        "src/components/**",
+        "src/routes/**",
+        "src/hooks/**",
+        "src/**/*.d.ts",
+      ],
+    },
   },
   resolve: {
     alias: {

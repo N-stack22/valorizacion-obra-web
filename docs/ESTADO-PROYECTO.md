@@ -29,6 +29,21 @@ Login → crear proyecto → completar ficha técnica → cargar partidas manual
 
 ---
 
+## Documentación académica integrada
+
+Se agregó al repositorio el documento de **Tablas del Estado del Arte — 50 artículos científicos** en formato editable y PDF.
+
+Ubicaciones:
+
+- `docs/estado-del-arte/Tablas_Estado_del_Arte_Valorizacion_Obra_Web_50_Articulos.docx`
+- `docs/estado-del-arte/Tablas_Estado_del_Arte_Valorizacion_Obra_Web_50_Articulos.pdf`
+- `public/docs/estado-del-arte/Tablas_Estado_del_Arte_Valorizacion_Obra_Web_50_Articulos.docx`
+- `public/docs/estado-del-arte/Tablas_Estado_del_Arte_Valorizacion_Obra_Web_50_Articulos.pdf`
+
+La copia en `public/` permite que el frontend la sirva como recurso descargable desde el módulo **Centro de documentos**.
+
+---
+
 ## 2. Arquitectura actual
 
 **Stack real verificado:**
