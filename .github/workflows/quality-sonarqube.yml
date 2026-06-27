@@ -83,7 +83,5 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          # Para SonarQube Server autohospedado define SONAR_HOST_URL como secret o variable.
-          # Para SonarQube Cloud no es necesario.
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: https://sonarcloud.io
           GITHUB_TOKEN: ${{ github.token }}
