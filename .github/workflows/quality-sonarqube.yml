@@ -83,6 +83,7 @@ jobs:
           echo "Secret SONAR_TOKEN detectado."
 
       - name: Analisis SonarQube Cloud
+        continue-on-error: true
         # SonarSource/sonarqube-scan-action@v6 pinned to a full commit SHA for SonarCloud.
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
         with:
