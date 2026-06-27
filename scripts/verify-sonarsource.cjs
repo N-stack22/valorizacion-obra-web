@@ -33,6 +33,9 @@ for (const token of requiredSonarTokens) {
 }
 
 const requiredWorkflowTokens = [
+  'actions/checkout@v5',
+  'actions/setup-node@v5',
+  'actions/upload-artifact@v5',
   'SonarSource/sonarqube-scan-action@v6',
   'fetch-depth: 0',
   'npm ci --no-audit',
