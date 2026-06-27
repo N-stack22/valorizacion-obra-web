@@ -4,11 +4,7 @@ import { Bell, CheckCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -45,7 +41,7 @@ export function NotificationsBell() {
 
   useEffect(() => {
     if (!user) return;
-    void load();
+    load().catch(() => undefined);
     const channel = supabase
       .channel(`notifications:${user.id}`)
       .on(
@@ -56,11 +52,13 @@ export function NotificationsBell() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        () => void load(),
+        () => {
+          load().catch(() => undefined);
+        },
       )
       .subscribe();
     return () => {
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -70,7 +68,9 @@ export function NotificationsBell() {
   const markAllRead = async () => {
     if (!user || unread.length === 0) return;
     const ids = unread.map((n) => n.id);
-    setItems((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, read_at: new Date().toISOString() } : n)));
+    setItems((prev) =>
+      prev.map((n) => (ids.includes(n.id) ? { ...n, read_at: new Date().toISOString() } : n)),
+    );
     await supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
@@ -78,7 +78,9 @@ export function NotificationsBell() {
   };
 
   const markOneRead = async (id: string) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)));
+    setItems((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
+    );
     await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
   };
 
@@ -87,7 +89,12 @@ export function NotificationsBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notificaciones">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9"
+          aria-label="Notificaciones"
+        >
           <Bell className="h-4 w-4" />
           {unread.length > 0 ? (
             <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full px-1 text-[10px]">
@@ -103,7 +110,7 @@ export function NotificationsBell() {
             variant="ghost"
             size="sm"
             className="h-7 text-xs"
-            onClick={() => void markAllRead()}
+            onClick={() => markAllRead().catch(() => undefined)}
             disabled={unread.length === 0}
           >
             <CheckCheck className="mr-1 h-3.5 w-3.5" />
@@ -125,9 +132,9 @@ export function NotificationsBell() {
                       type="button"
                       className={`block w-full text-left hover:bg-muted/50 ${unreadItem ? "bg-accent/40" : ""}`}
                       onClick={() => {
-                        if (unreadItem) void markOneRead(n.id);
+                        if (unreadItem) markOneRead(n.id).catch(() => undefined);
                         setOpen(false);
-                        if (n.link) router.navigate({ to: n.link as never });
+                        if (n.link) router.navigate({ to: n.link as never }).catch(() => undefined);
                       }}
                     >
                       <div className="px-3 py-2 text-sm">

@@ -65,7 +65,7 @@ describe("caja negra - tecnicas solicitadas", () => {
     expect(computeLinePartial({ num_elements: 1, length: 1, width: 1, height: 1 })).toBe(1);
     expect(computeLinePartial({ num_elements: 0, length: 5, width: 2, height: 1 })).toBe(0);
     expect(computeLinePartial({ num_elements: 1, length: 0, width: 2, height: 1 })).toBe(0);
-    expect(computeLinePartial({ num_elements: 1, length: 0.0001, width: 1, height: 1 })).toBe(0.0001);
+    expect(computeLinePartial({ num_elements: 1, length: 0.0001, width: 1, height: 1 })).toBeCloseTo(0.0001, 8);
   });
 
   it("apertura de periodo por tabla de decision", () => {

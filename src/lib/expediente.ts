@@ -54,13 +54,8 @@ export function computeLinePartial(line: Partial<MetradoLine>): number {
       .replace(/H/gi, h != null ? String(h) : "1")
       .replace(/N/gi, String(n));
     if (/^[\d+\-*/().\s]+$/.test(expr)) {
-      try {
-        // eslint-disable-next-line no-new-func
-        const result = Function(`"use strict";return (${expr})`)();
-        if (typeof result === "number" && Number.isFinite(result)) return round(result, 4);
-      } catch {
-        // cae al cálculo geométrico
-      }
+      const result = evaluateArithmeticExpression(expr);
+      if (result != null) return round(result, 4);
     }
   }
 
@@ -97,6 +92,89 @@ export function getMetradoExcess(args: {
 function round(v: number, d = 2) {
   const p = Math.pow(10, d);
   return Math.round(v * p) / p;
+}
+
+function evaluateArithmeticExpression(expression: string): number | null {
+  let index = 0;
+
+  const skipSpaces = () => {
+    while (/\s/.test(expression[index] ?? "")) index += 1;
+  };
+
+  const parseNumber = (): number | null => {
+    skipSpaces();
+    const start = index;
+    while (/\d|\./.test(expression[index] ?? "")) index += 1;
+    if (start === index) return null;
+
+    const raw = expression.slice(start, index);
+    if (!/^\d+(?:\.\d+)?$|^\.\d+$/.test(raw)) return null;
+
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  };
+
+  const parseFactor = (): number | null => {
+    skipSpaces();
+
+    const current = expression[index];
+    if (current === "+" || current === "-") {
+      index += 1;
+      const value = parseFactor();
+      return value == null ? null : current === "-" ? -value : value;
+    }
+
+    if (current === "(") {
+      index += 1;
+      const value = parseExpression();
+      skipSpaces();
+      if (expression[index] !== ")") return null;
+      index += 1;
+      return value;
+    }
+
+    return parseNumber();
+  };
+
+  const parseTerm = (): number | null => {
+    let value = parseFactor();
+    if (value == null) return null;
+
+    while (true) {
+      skipSpaces();
+      const operator = expression[index];
+      if (operator !== "*" && operator !== "/") return value;
+
+      index += 1;
+      const right = parseFactor();
+      if (right == null) return null;
+
+      value = operator === "*" ? value * right : value / right;
+      if (!Number.isFinite(value)) return null;
+    }
+  };
+
+  function parseExpression(): number | null {
+    let value = parseTerm();
+    if (value == null) return null;
+
+    while (true) {
+      skipSpaces();
+      const operator = expression[index];
+      if (operator !== "+" && operator !== "-") return value;
+
+      index += 1;
+      const right = parseTerm();
+      if (right == null) return null;
+
+      value = operator === "+" ? value + right : value - right;
+      if (!Number.isFinite(value)) return null;
+    }
+  }
+
+  const result = parseExpression();
+  skipSpaces();
+  return result != null && index === expression.length ? result : null;
 }
 
 export type ValuationItemSummary = {
@@ -161,9 +239,7 @@ export function buildValuationTable(args: {
  * decidir qué filas son hojas estructurales — independientemente de unit/price.
  */
 export function buildParentCodeSet(items: Array<{ item_code: string | null }>): Set<string> {
-  const codes = items
-    .map((i) => (i.item_code ?? "").trim())
-    .filter((c) => c.length > 0);
+  const codes = items.map((i) => (i.item_code ?? "").trim()).filter((c) => c.length > 0);
   const codeSet = new Set(codes);
   const parents = new Set<string>();
   for (const c of codes) {
@@ -188,13 +264,14 @@ export function isLeafByCode(code: string | null | undefined, parentSet: Set<str
  * Mantenemos el nombre por compatibilidad con páginas que ya lo importan, pero ahora
  * requiere el set de padres calculado a partir de TODAS las partidas del proyecto.
  */
-export function isMeasurableBudgetItem(
-  item: BudgetItemRow,
-  parentSet?: Set<string>,
-): boolean {
+export function isMeasurableBudgetItem(item: BudgetItemRow, parentSet?: Set<string>): boolean {
   if (parentSet) return isLeafByCode(item.item_code, parentSet);
   // Fallback heurístico (cuando no se pasa el set): hoja si tiene unit o price.
-  return Boolean((item.unit ?? "").trim()) || Number(item.base_quantity || 0) > 0 || Number(item.unit_price || 0) > 0;
+  return (
+    Boolean((item.unit ?? "").trim()) ||
+    Number(item.base_quantity || 0) > 0 ||
+    Number(item.unit_price || 0) > 0
+  );
 }
 
 export function totals(rows: ValuationItemSummary[]) {
@@ -204,7 +281,11 @@ export function totals(rows: ValuationItemSummary[]) {
       const isLeaf = isLeafByCode(r.item.item_code, parentSet);
       // Solo las hojas suman al base/period/accum — los padres son agrupadores.
       return {
-        base: acc.base + (isLeaf ? Number(r.item.partial_amount || r.item.base_quantity * r.item.unit_price || 0) : 0),
+        base:
+          acc.base +
+          (isLeaf
+            ? Number(r.item.partial_amount || r.item.base_quantity * r.item.unit_price || 0)
+            : 0),
         prev: acc.prev + (isLeaf ? r.amountPrev : 0),
         current: acc.current + (isLeaf ? r.amountCurrent : 0),
         accum: acc.accum + (isLeaf ? r.amountAccum : 0),
@@ -296,9 +377,16 @@ function compareCodes(a: string, b: string): number {
 }
 
 export function formatNum(n: number, d = 2) {
-  return new Intl.NumberFormat("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  return new Intl.NumberFormat("es-PE", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(n);
 }
 
 export function formatMoney(n: number, currency = "PEN") {
-  return new Intl.NumberFormat("es-PE", { style: "currency", currency, minimumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(n);
 }

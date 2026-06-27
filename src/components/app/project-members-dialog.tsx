@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Users, Trash2 } from "lucide-react";
 
@@ -24,7 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -53,13 +60,12 @@ interface MemberRow {
   project_role: ProjectRole;
 }
 
-export function ProjectMembersDialog({
-  projectId,
-  projectName,
-}: {
+type ProjectMembersDialogProps = Readonly<{
   projectId: string;
   projectName: string;
-}) {
+}>;
+
+export function ProjectMembersDialog({ projectId, projectName }: ProjectMembersDialogProps) {
   const { profiles } = useWorkspace();
   const { user, isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
@@ -71,11 +77,12 @@ export function ProjectMembersDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const isProjectAdmin = useMemo(
-    () => isAdmin || members.some((m) => m.user_id === user?.id && m.project_role === "admin_proyecto"),
+    () =>
+      isAdmin || members.some((m) => m.user_id === user?.id && m.project_role === "admin_proyecto"),
     [isAdmin, members, user?.id],
   );
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("project_members")
@@ -87,11 +94,11 @@ export function ProjectMembersDialog({
       setMembers(data ?? []);
     }
     setLoading(false);
-  };
+  }, [projectId]);
 
   useEffect(() => {
-    if (open) void loadMembers();
-  }, [open]);
+    if (open) loadMembers().catch(() => undefined);
+  }, [loadMembers, open]);
 
   const profileName = (userId: string) => {
     const p = profiles.find((x) => x.user_id === userId);
@@ -187,13 +194,18 @@ export function ProjectMembersDialog({
                     <TableCell className="font-medium">{profileName(m.user_id)}</TableCell>
                     <TableCell>
                       {isProjectAdmin && m.user_id !== user?.id ? (
-                        <Select value={m.project_role} onValueChange={(v) => updateRole(m.id, v as ProjectRole)}>
+                        <Select
+                          value={m.project_role}
+                          onValueChange={(v) => updateRole(m.id, v as ProjectRole)}
+                        >
                           <SelectTrigger className="h-8 w-full max-w-[220px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {Object.entries(projectRoleLabels).map(([v, l]) => (
-                              <SelectItem key={v} value={v}>{l}</SelectItem>
+                              <SelectItem key={v} value={v}>
+                                {l}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -221,8 +233,16 @@ export function ProjectMembersDialog({
             {availableProfiles.length > 0 ? (
               <div className="space-y-2">
                 <Label className="text-xs">Selecciona un perfil</Label>
-                <Select value={selectedUserId} onValueChange={(v) => { setSelectedUserId(v); setManualUserId(""); }}>
-                  <SelectTrigger><SelectValue placeholder="Buscar usuario…" /></SelectTrigger>
+                <Select
+                  value={selectedUserId}
+                  onValueChange={(v) => {
+                    setSelectedUserId(v);
+                    setManualUserId("");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Buscar usuario…" />
+                  </SelectTrigger>
                   <SelectContent>
                     {availableProfiles.map((p) => (
                       <SelectItem key={p.user_id} value={p.user_id}>
@@ -238,16 +258,23 @@ export function ProjectMembersDialog({
               <Input
                 placeholder="00000000-0000-0000-0000-000000000000"
                 value={manualUserId}
-                onChange={(e) => { setManualUserId(e.target.value); setSelectedUserId(""); }}
+                onChange={(e) => {
+                  setManualUserId(e.target.value);
+                  setSelectedUserId("");
+                }}
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Rol en el proyecto</Label>
               <Select value={role} onValueChange={(v) => setRole(v as ProjectRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(projectRoleLabels).map(([v, l]) => (
-                    <SelectItem key={v} value={v}>{l}</SelectItem>
+                    <SelectItem key={v} value={v}>
+                      {l}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
