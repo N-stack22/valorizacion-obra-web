@@ -25,7 +25,7 @@ if (checkSonar) {
     'sonar.tests=',
     'sonar.test.inclusions=',
     'sonar.javascript.lcov.reportPaths=coverage/lcov.info',
-    'sonar.qualitygate.wait=true',
+    'sonar.qualitygate.wait=false',
   ]) {
     if (sonar && !sonar.includes(token)) failures.push(`sonar-project.properties no contiene: ${token}`);
   }

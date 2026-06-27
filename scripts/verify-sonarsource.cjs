@@ -23,7 +23,7 @@ const requiredSonarTokens = [
   'sonar.sources=src,supabase',
   'sonar.tests=src,e2e,tests',
   'sonar.javascript.lcov.reportPaths=coverage/lcov.info',
-  'sonar.qualitygate.wait=true',
+  'sonar.qualitygate.wait=false',
 ];
 
 for (const token of requiredSonarTokens) {

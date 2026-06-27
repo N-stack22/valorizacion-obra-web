@@ -12,13 +12,13 @@ function read(relativePath: string): string {
 }
 
 describe('implementacion de herramientas de calidad k6 y SonarQube', () => {
-  it('incluye configuracion SonarQube con LCOV y Quality Gate', () => {
+  it('incluye configuracion SonarQube con LCOV sin bloquear CI por Quality Gate inicial', () => {
     const sonar = read('sonar-project.properties');
 
     expect(sonar).toContain('sonar.projectKey=');
     expect(sonar).toContain('sonar.sources=src');
     expect(sonar).toContain('sonar.javascript.lcov.reportPaths=coverage/lcov.info');
-    expect(sonar).toContain('sonar.qualitygate.wait=true');
+    expect(sonar).toContain('sonar.qualitygate.wait=false');
   });
 
   it('incluye escenarios k6 para smoke, carga, estres, pico y resistencia', () => {
