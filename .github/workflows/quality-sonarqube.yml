@@ -89,8 +89,8 @@ jobs:
         with:
           args: >
             -Dsonar.sources=src
-            -Dsonar.tests=src,e2e,tests
-            -Dsonar.test.inclusions=src/**/*.test.ts,src/**/*.test.tsx,e2e/**/*.spec.ts,tests/**/*.js
+            -Dsonar.tests=e2e,tests
+            -Dsonar.test.inclusions=e2e/**/*.spec.ts,tests/**/*.js
             -Dsonar.exclusions=dist/**,.output/**,.vinxi/**,coverage/**,playwright-report/**,test-results/**,node_modules/**,docs/estado-del-arte/**,public/docs/**,reports/**,supabase/**,**/supabase/**,**/supabase/migrations/**,**/*.sql,src/**/*.test.ts,src/**/*.test.tsx,src/components/ui/**,src/routeTree.gen.ts,src/integrations/supabase/types.ts,**/*.d.ts
             -Dsonar.coverage.exclusions=src/main.tsx,src/router.tsx,src/routes/**,src/components/**,src/hooks/**,src/integrations/**,src/routeTree.gen.ts,src/**/*.test.ts,src/**/*.test.tsx,e2e/**,tests/k6/**,supabase/**,**/supabase/**,**/supabase/migrations/**,**/*.sql,**/*.config.js,**/*.config.ts,**/*.d.ts
             -Dsonar.cpd.exclusions=supabase/**,supabase/migrations/**,**/supabase/**,**/supabase/migrations/**,**/*.sql,src/components/**,src/routes/**,src/hooks/**,src/integrations/**,src/routeTree.gen.ts,src/**/*.test.ts,src/**/*.test.tsx,e2e/**,tests/**

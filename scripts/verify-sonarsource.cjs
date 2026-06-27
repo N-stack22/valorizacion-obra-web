@@ -22,7 +22,7 @@ const requiredSonarTokens = [
   "sonar.organization=",
   "sonar.projectKey=",
   "sonar.sources=src",
-  "sonar.tests=src,e2e,tests",
+  "sonar.tests=e2e,tests",
   "supabase/**",
   "src/**/*.test.ts",
   "src/components/ui/**",
@@ -38,12 +38,25 @@ for (const token of requiredSonarTokens) {
 
 for (const token of [
   "sonar.sources=src",
-  "sonar.tests=src,e2e,tests",
+  "sonar.tests=e2e,tests",
   "sonar.exclusions=.github,scripts,supabase",
   "sonar.cpd.exclusions=.github,scripts,supabase",
 ]) {
   if (sonarCloud && !sonarCloud.includes(token)) {
     failures.push(`.sonarcloud.properties no contiene: ${token}`);
+  }
+}
+
+for (const [fileName, content] of [
+  ["sonar-project.properties", sonar],
+  [".sonarcloud.properties", sonarCloud],
+  [".github/workflows/quality-sonarqube.yml", workflow],
+]) {
+  if (content.includes("sonar.tests=src")) {
+    failures.push(`${fileName} no debe incluir src dentro de sonar.tests`);
+  }
+  if (content.includes("-Dsonar.tests=src")) {
+    failures.push(`${fileName} no debe incluir src dentro de -Dsonar.tests`);
   }
 }
 
