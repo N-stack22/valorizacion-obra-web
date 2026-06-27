@@ -20,6 +20,8 @@ import {
 } from "./ai/prompt";
 import { buildClaudeRequestBody } from "./ai/providers/claude.server";
 
+const compareText = (left: string, right: string) => left.localeCompare(right);
+
 function budgetItem(patch: Partial<BudgetItemRow>): BudgetItemRow {
   return {
     id: "item-1",
@@ -103,7 +105,7 @@ describe("caja blanca - logica interna solicitada", () => {
       contractualQuantity: 100,
       previousQuantity: 60,
       currentQuantity: 40.001,
-    })).toBe(0.001);
+    })).toBeCloseTo(0.001, 6);
   });
 
   it("calculo de valorizacion multiplica metrado aprobado por precio unitario", () => {
@@ -132,7 +134,9 @@ describe("caja blanca - logica interna solicitada", () => {
 
     expect(result.k).toBeCloseTo(1.1, 6);
     expect(result.reajusteAmount).toBeCloseTo(100, 2);
-    expect(result.detail.map((row) => row.ratio)).toEqual([1.1, 1.1]);
+    for (const row of result.detail) {
+      expect(row.ratio).toBeCloseTo(1.1, 6);
+    }
   });
 
   it("permisos por rol respetan guards y validaciones internas", () => {
@@ -166,7 +170,9 @@ describe("caja blanca - logica interna solicitada", () => {
       humanReviewRequired: HUMAN_REVIEW_REQUIRED,
       requestedSections: ["generalidades", "metas"],
     });
-    expect(Object.keys(body).sort()).toEqual(["max_tokens", "messages", "model", "system", "temperature"].sort());
+    expect(Object.keys(body).sort(compareText)).toEqual(
+      ["max_tokens", "messages", "model", "system", "temperature"].sort(compareText),
+    );
     expect(body.messages).toHaveLength(1);
     expect(serializedBody).not.toContain("x-api-key");
     expect(serializedBody).not.toContain("ANTHROPIC_API_KEY");

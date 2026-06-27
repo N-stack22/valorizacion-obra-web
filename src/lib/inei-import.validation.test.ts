@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { validateIneiRows, normalizePeriod, type RawRow } from "./inei-import.validation";
 
+const compareText = (left: string, right: string) => left.localeCompare(right);
+const compareNumber = (left: number, right: number) => left - right;
+
 describe("normalizePeriod", () => {
   it("acepta YYYY-MM-DD", () => {
     expect(normalizePeriod("2026-06-15")).toBe("2026-06-15");
@@ -75,7 +78,7 @@ describe("validateIneiRows — campos faltantes", () => {
     const { errors } = validateIneiRows([
       { period_month: "", code: "", value: "" },
     ]);
-    const fields = errors.map((e) => e.field).sort();
+    const fields = errors.map((e) => e.field).sort(compareText);
     expect(fields).toEqual(["code", "period_month", "value"]);
   });
 });
@@ -166,7 +169,7 @@ describe("validateIneiRows — lote mixto", () => {
     ];
     const { valid, errors } = validateIneiRows(rows);
     expect(valid.map((v) => v.code)).toEqual(["39", "42"]);
-    expect(errors.map((e) => e.line).sort()).toEqual([2, 3, 4]);
+    expect(errors.map((e) => e.line).sort(compareNumber)).toEqual([2, 3, 4]);
     expect(errors.find((e) => e.line === 2)?.field).toBe("period_month");
     expect(errors.find((e) => e.line === 3)?.field).toBe("value");
     expect(errors.find((e) => e.line === 4)?.field).toBe("_row");

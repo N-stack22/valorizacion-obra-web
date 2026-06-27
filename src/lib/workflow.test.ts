@@ -6,6 +6,8 @@ import {
   getWorkflowTransitions,
 } from "./workflow";
 
+const compareText = (left: string, right: string) => left.localeCompare(right);
+
 describe("workflow transitions", () => {
   it("memoria: residente puede enviar a revisión desde draft", () => {
     const t = getAvailableTransitions({
@@ -22,7 +24,7 @@ describe("workflow transitions", () => {
       status: "in_review",
       roles: ["supervisor_inspector"],
     });
-    expect(t.map((x) => x.action).sort()).toEqual(["approved", "rejected"]);
+    expect(t.map((x) => x.action).sort(compareText)).toEqual(["approved", "rejected"]);
   });
 
   it("memoria: supervisor NO puede actuar sobre draft", () => {
@@ -89,7 +91,7 @@ describe("workflow transitions", () => {
       roles: [],
       isGlobalAdmin: true,
     });
-    expect(t.map((x) => x.action).sort()).toEqual(["approved", "rejected"]);
+    expect(t.map((x) => x.action).sort(compareText)).toEqual(["approved", "rejected"]);
   });
 
   it("admin_proyecto cubre los tres pasos", () => {
