@@ -1,5 +1,6 @@
-import { check, group, sleep } from 'k6';
-import http from 'k6/http';
+import { check, group, sleep } from "k6";
+import exec from "k6/execution";
+import http from "k6/http";
 import {
   BASE_URL,
   PAGE_PATHS,
@@ -8,10 +9,15 @@ import {
   K6_AUTH_TOKEN,
   THINK_TIME_MIN,
   THINK_TIME_MAX,
-} from './config.js';
+} from "./config.js";
 
 function randomBetween(min, max) {
-  return min + Math.random() * (max - min);
+  const seed = `${exec.vu.idInTest}:${exec.vu.iterationInInstance}:${exec.scenario.iterationInTest}`;
+  let hash = 0;
+  for (const char of seed) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 10_000;
+  }
+  return min + (hash / 10_000) * (max - min);
 }
 
 export function thinkTime() {
@@ -19,13 +25,11 @@ export function thinkTime() {
 }
 
 export function browserHeaders(extra = {}) {
-  const authHeaders = K6_AUTH_TOKEN
-    ? { Authorization: `Bearer ${K6_AUTH_TOKEN}` }
-    : {};
+  const authHeaders = K6_AUTH_TOKEN ? { Authorization: `Bearer ${K6_AUTH_TOKEN}` } : {};
 
   return {
-    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'User-Agent': 'k6-valorizacion-obra/1.0',
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "User-Agent": "k6-valorizacion-obra/1.0",
     ...authHeaders,
     ...extra,
   };
@@ -40,8 +44,8 @@ export function apiHeaders(extra = {}) {
     : {};
 
   return {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
+    Accept: "application/json",
+    "Content-Type": "application/json",
     ...supabaseHeaders,
     ...extra,
   };
@@ -55,15 +59,15 @@ export function requestPage(path, expectedName = path) {
   });
 
   check(response, {
-    'pagina sin error 5xx': (r) => r.status < 500,
-    'respuesta con contenido': (r) => Boolean(r.body && r.body.length > 0),
+    "pagina sin error 5xx": (r) => r.status < 500,
+    "respuesta con contenido": (r) => Boolean(r.body && r.body.length > 0),
   });
 
   return response;
 }
 
 export function requestCorePages() {
-  group('navegacion SPA principal', () => {
+  group("navegacion SPA principal", () => {
     for (const path of PAGE_PATHS) {
       requestPage(path);
       thinkTime();
@@ -77,13 +81,16 @@ export function requestSupabaseReadProbe() {
   }
 
   const response = http.get(`${SUPABASE_URL}/rest/v1/projects?select=id,name,status&limit=1`, {
-    headers: apiHeaders({ Prefer: 'count=exact' }),
-    tags: { name: 'GET Supabase projects read probe' },
+    headers: apiHeaders({ Prefer: "count=exact" }),
+    tags: { name: "GET Supabase projects read probe" },
   });
 
   check(response, {
-    'supabase responde sin 5xx': (r) => r.status < 500,
-    'supabase no expone error interno': (r) => !String(r.body || '').toLowerCase().includes('stack'),
+    "supabase responde sin 5xx": (r) => r.status < 500,
+    "supabase no expone error interno": (r) =>
+      !String(r.body || "")
+        .toLowerCase()
+        .includes("stack"),
   });
 
   return response;
@@ -96,35 +103,35 @@ export function requestSupabaseAuthSettingsProbe() {
 
   const response = http.get(`${SUPABASE_URL}/auth/v1/settings`, {
     headers: apiHeaders(),
-    tags: { name: 'GET Supabase auth settings probe' },
+    tags: { name: "GET Supabase auth settings probe" },
   });
 
   check(response, {
-    'auth settings sin error 5xx': (r) => r.status < 500,
+    "auth settings sin error 5xx": (r) => r.status < 500,
   });
 
   return response;
 }
 
 export function runReadOnlyValuationJourney() {
-  group('flujo lectura valorizacion obra', () => {
-    requestPage('/');
+  group("flujo lectura valorizacion obra", () => {
+    requestPage("/");
     thinkTime();
-    requestPage('/login');
+    requestPage("/login");
     thinkTime();
-    requestPage('/app/dashboard');
+    requestPage("/app/dashboard");
     thinkTime();
-    requestPage('/app/projects');
+    requestPage("/app/projects");
     thinkTime();
-    requestPage('/app/budgets');
+    requestPage("/app/budgets");
     thinkTime();
-    requestPage('/app/metrados');
+    requestPage("/app/metrados");
     thinkTime();
-    requestPage('/app/valuations');
+    requestPage("/app/valuations");
     thinkTime();
-    requestPage('/app/reajustes');
+    requestPage("/app/reajustes");
     thinkTime();
-    requestPage('/app/expediente');
+    requestPage("/app/expediente");
     thinkTime();
     requestSupabaseAuthSettingsProbe();
     requestSupabaseReadProbe();
