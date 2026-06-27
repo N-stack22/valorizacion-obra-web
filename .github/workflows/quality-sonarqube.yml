@@ -5,8 +5,8 @@ on:
     branches:
       - main
       - develop
-      - 'leonardo/**'
-      - 'feature/**'
+      - "leonardo/**"
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -30,12 +30,14 @@ jobs:
 
     steps:
       - name: Checkout completo para SonarQube Cloud
-        uses: actions/checkout@v5
+        # actions/checkout@v5 pinned to a full commit SHA for SonarCloud.
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
 
       - name: Node.js
-        uses: actions/setup-node@v5
+        # actions/setup-node@v5 pinned to a full commit SHA for SonarCloud.
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
           node-version: 22
           cache: npm
@@ -59,7 +61,8 @@ jobs:
 
       - name: Publicar cobertura como artefacto
         if: always()
-        uses: actions/upload-artifact@v5
+        # actions/upload-artifact@v5 pinned to a full commit SHA for SonarCloud.
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: coverage-lcov
           path: |
@@ -80,7 +83,8 @@ jobs:
           echo "Secret SONAR_TOKEN detectado."
 
       - name: Analisis SonarQube Cloud
-        uses: SonarSource/sonarqube-scan-action@v6
+        # SonarSource/sonarqube-scan-action@v6 pinned to a full commit SHA for SonarCloud.
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

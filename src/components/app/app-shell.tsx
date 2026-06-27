@@ -7,6 +7,7 @@ import {
   FileText,
   FolderKanban,
   Gauge,
+  Home,
   HardHat,
   Settings,
   ShieldCheck,
@@ -40,7 +41,6 @@ import { globalRoleLabels, roleLabels } from "@/lib/business";
 import { WorkspaceProvider } from "@/components/app/workspace-provider";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { NotificationsBell } from "@/components/app/notifications-bell";
-import { Home } from "lucide-react";
 
 const menuGroups = [
   {
@@ -84,8 +84,12 @@ function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-sidebar-foreground">JJ&PP Ingenieros</p>
-              <p className="truncate text-xs text-sidebar-foreground/70">Gestión de metrados y valorizaciones</p>
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                JJ&PP Ingenieros
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/70">
+                Gestión de metrados y valorizaciones
+              </p>
             </div>
           )}
         </div>
@@ -120,15 +124,25 @@ function AppSidebar() {
       <SidebarFooter className="px-3 py-4">
         {!collapsed && (
           <div className="space-y-1">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">{profile?.full_name || "Usuario"}</p>
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
+              {profile?.full_name || "Usuario"}
+            </p>
             <div className="flex flex-wrap gap-1">
               {globalRoles.map((role) => (
-                <Badge key={role} variant="outline" className="border-sidebar-border bg-sidebar-accent text-[11px] text-sidebar-accent-foreground">
+                <Badge
+                  key={role}
+                  variant="outline"
+                  className="border-sidebar-border bg-sidebar-accent text-[11px] text-sidebar-accent-foreground"
+                >
                   {globalRoleLabels[role]}
                 </Badge>
               ))}
               {roles.map((role) => (
-                <Badge key={role} variant="outline" className="border-sidebar-border bg-sidebar-accent text-[11px] text-sidebar-accent-foreground">
+                <Badge
+                  key={role}
+                  variant="outline"
+                  className="border-sidebar-border bg-sidebar-accent text-[11px] text-sidebar-accent-foreground"
+                >
                   {roleLabels[role]}
                 </Badge>
               ))}
@@ -157,11 +171,13 @@ function AppTopbar() {
               {segments.map((segment) => (
                 <span key={segment} className="flex items-center gap-2">
                   <span>/</span>
-                  <span className="capitalize">{segment.replace(/-/g, " ")}</span>
+                  <span className="capitalize">{segment.replaceAll("-", " ")}</span>
                 </span>
               ))}
             </nav>
-            <p className="truncate text-sm font-medium text-foreground">{profile?.job_title || "Plataforma de control de obra"}</p>
+            <p className="truncate text-sm font-medium text-foreground">
+              {profile?.job_title || "Plataforma de control de obra"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -173,7 +189,7 @@ function AppTopbar() {
           </Button>
           <NotificationsBell />
           <ThemeToggle />
-          <Button variant="outline" onClick={() => void signOut()}>
+          <Button variant="outline" onClick={() => signOut().catch(() => undefined)}>
             Cerrar sesión
           </Button>
         </div>

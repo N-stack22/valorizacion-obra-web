@@ -2,7 +2,15 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function PageLayout({ title, description, actions, children, className }: { title: string; description: string; actions?: ReactNode; children: ReactNode; className?: string }) {
+type PageLayoutProps = Readonly<{
+  title: string;
+  description: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}>;
+
+export function PageLayout({ title, description, actions, children, className }: PageLayoutProps) {
   return (
     <section className={cn("w-full min-w-0 max-w-full space-y-6", className)}>
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -23,15 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { generateTechnicalDraft } from "@/lib/ai/draft.functions";
-import {
-  DRAFT_SECTIONS,
-  type DraftSectionKey,
-  type DraftSections,
-} from "@/lib/ai/types";
+import { DRAFT_SECTIONS, type DraftSectionKey, type DraftSections } from "@/lib/ai/types";
 import type { ProjectRow } from "@/lib/domain";
 import { toPeriodDate } from "@/lib/business";
 
-interface AIDraftDialogProps {
+type AIDraftDialogProps = Readonly<{
   projects: ProjectRow[];
   projectId?: string;
   periodId?: string;
@@ -46,7 +42,7 @@ interface AIDraftDialogProps {
    * Recibe HTML listo para pegar en el RichTextEditor.
    */
   onApplyAll?: (html: string) => void;
-}
+}>;
 
 function emptySections(): DraftSections {
   return DRAFT_SECTIONS.reduce((acc, s) => {
@@ -61,7 +57,7 @@ function sectionsToHtml(sections: DraftSections): string {
     if (!text) return "";
     const paragraphs = text
       .split(/\n+/)
-      .map((p) => `<p>${p.replace(/</g, "&lt;")}</p>`)
+      .map((p) => `<p>${p.replaceAll("<", "&lt;")}</p>`)
       .join("");
     return `<h3>${s.label}</h3>${paragraphs}`;
   })
@@ -82,6 +78,7 @@ function getAIToastMessage(message: string): string {
 export function AIDraftDialog({
   projects,
   projectId: fixedProjectId,
+  periodId,
   periodMonth,
   defaultProjectId,
   defaultPeriod,
@@ -90,6 +87,9 @@ export function AIDraftDialog({
   onApply,
   onApplyAll,
 }: AIDraftDialogProps) {
+  const projectSelectId = useId();
+  const periodInputId = useId();
+  const observationsInputId = useId();
   const [open, setOpen] = useState(false);
   const [projectId, setProjectId] = useState(fixedProjectId ?? defaultProjectId ?? "");
   const [period, setPeriod] = useState((periodMonth ?? defaultPeriod)?.slice(0, 7) ?? "");
@@ -106,6 +106,7 @@ export function AIDraftDialog({
     () => Boolean(projectId) && /^\d{4}-\d{2}$/.test(period),
     [projectId, period],
   );
+  const hasFixedPeriod = Boolean(periodMonth || periodId);
 
   async function runGeneration(targetSections?: DraftSectionKey[]) {
     if (!canGenerate) {
@@ -201,9 +202,18 @@ export function AIDraftDialog({
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Proyecto</label>
-              <Select value={projectId} onValueChange={setProjectId} disabled={Boolean(fixedProjectId)}>
-                <SelectTrigger>
+              <label
+                htmlFor={projectSelectId}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Proyecto
+              </label>
+              <Select
+                value={projectId}
+                onValueChange={setProjectId}
+                disabled={Boolean(fixedProjectId)}
+              >
+                <SelectTrigger id={projectSelectId}>
                   <SelectValue placeholder="Selecciona proyecto" />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,21 +226,28 @@ export function AIDraftDialog({
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Período</label>
+              <label htmlFor={periodInputId} className="text-xs font-medium text-muted-foreground">
+                Periodo
+              </label>
               <Input
+                id={periodInputId}
                 type="month"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                disabled={Boolean(periodMonth)}
+                disabled={hasFixedPeriod}
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor={observationsInputId}
+              className="text-xs font-medium text-muted-foreground"
+            >
               Observaciones del usuario (opcional)
             </label>
             <Textarea
+              id={observationsInputId}
               rows={2}
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
@@ -240,7 +257,11 @@ export function AIDraftDialog({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => runGeneration()} disabled={loading || !canGenerate}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
               Generar borrador completo
             </Button>
             {provider ? (
@@ -274,9 +295,7 @@ export function AIDraftDialog({
                   className="mt-2"
                   rows={4}
                   value={sections[s.key] ?? ""}
-                  onChange={(e) =>
-                    setSections((prev) => ({ ...prev, [s.key]: e.target.value }))
-                  }
+                  onChange={(e) => setSections((prev) => ({ ...prev, [s.key]: e.target.value }))}
                   placeholder="(vacío) — genera el borrador o redacta manualmente"
                 />
               </div>
@@ -288,7 +307,9 @@ export function AIDraftDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cerrar
           </Button>
-          <Button onClick={applyAll}>{onApply ? "Aplicar al formulario" : "Insertar en el editor"}</Button>
+          <Button onClick={applyAll}>
+            {onApply ? "Aplicar al formulario" : "Insertar en el editor"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
