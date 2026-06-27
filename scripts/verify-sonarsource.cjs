@@ -14,6 +14,7 @@ function readRequired(relativePath) {
 }
 
 const sonar = readRequired("sonar-project.properties");
+const sonarCloud = readRequired(".sonarcloud.properties");
 const workflow = readRequired(".github/workflows/quality-sonarqube.yml");
 const vitest = readRequired("vitest.config.ts");
 
@@ -32,6 +33,17 @@ const requiredSonarTokens = [
 for (const token of requiredSonarTokens) {
   if (sonar && !sonar.includes(token)) {
     failures.push(`sonar-project.properties no contiene: ${token}`);
+  }
+}
+
+for (const token of [
+  "sonar.sources=src",
+  "sonar.tests=src,e2e,tests",
+  "sonar.exclusions=.github,scripts,supabase",
+  "sonar.cpd.exclusions=.github,scripts,supabase",
+]) {
+  if (sonarCloud && !sonarCloud.includes(token)) {
+    failures.push(`.sonarcloud.properties no contiene: ${token}`);
   }
 }
 
